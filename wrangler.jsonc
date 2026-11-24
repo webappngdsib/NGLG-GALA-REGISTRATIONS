@@ -1,0 +1,18 @@
+{
+  "name": "nglg-gala-registrations",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-11-24",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "FORM_ORIGIN": "https://webappngdsib.github.io",
+    "REGISTRATIONS_OPEN": "false"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nglg-gala-registrations",
+      "database_id": "4695debc-0282-49e3-90a0-9d39c7ff61e8"
+    }
+  ]
+}
