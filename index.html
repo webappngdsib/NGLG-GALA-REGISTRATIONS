@@ -11,7 +11,7 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/assets/playfair.woff2) format('woff2');
+  src: url(./public/assets/playfair.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
@@ -19,13 +19,13 @@
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
-  src: url(/assets/montserrat.woff2) format('woff2');
+  src: url(./public/assets/montserrat.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
     :root { --blue:#061a35; --blue2:#123f78; --royal:#123f78; --gold:#d0aa4f; --gold-light:#f0dda0; --marble:#353a40; }
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; padding:20px; font-family:Montserrat,sans-serif; color:var(--blue);
-      background:linear-gradient(rgba(1,13,28,.54),rgba(1,13,28,.68)),url('/assets/background.jpg') center/cover fixed;
+      background:linear-gradient(rgba(1,13,28,.54),rgba(1,13,28,.68)),url('./public/assets/background.jpg') center/cover fixed;
       background-color:#001529; }
     .preview-badge { display:none; position:fixed; top:12px; right:12px; z-index:2; padding:8px 12px; border-radius:999px;
       background:#fff3cd; color:#6a5000; font-size:12px; font-weight:700; box-shadow:0 3px 15px #0003; }
@@ -127,14 +127,14 @@
 <body>
   <main class="form-container">
     <header class="hero-zone">
-      <div class="logo"><img src="/assets/emblem.jpg" alt="Έμβλημα ΕΜΣΤΕ"></div>
+      <div class="logo"><img src="./public/assets/emblem.jpg" alt="Έμβλημα ΕΜΣΤΕ"></div>
       <div class="title-wrapper">
-        <img src="/assets/compass.png" class="title-icon" alt="">
+        <img src="./public/assets/compass.png" class="title-icon" alt="">
         <h1>ΕΘΝΙΚΗ ΜΕΓΑΛΗ ΣΤΟΑ ΤΗΣ ΕΛΛΑΔΟΣ</h1>
-        <img src="/assets/compass.png" class="title-icon" alt="">
+        <img src="./public/assets/compass.png" class="title-icon" alt="">
       </div>
       <h2>Σεβτ. Αδ. Ιωάννης Μπενετάτος — Μέγας Διδάσκαλος</h2>
-      <img class="grand-master-photo" src="/assets/grand-master.jpg" alt="Σεβτ. Αδ. Ιωάννης Μπενετάτος — Μέγας Διδάσκαλος">
+      <img class="grand-master-photo" src="./public/assets/grand-master.jpg" alt="Σεβτ. Αδ. Ιωάννης Μπενετάτος — Μέγας Διδάσκαλος">
       <div class="assembly-picker">
         <label for="assembly" data-icon="◆">ΕΠΕΛΕΞΕ ΜΕΓΑΛΗ ΣΥΝΕΛΕΥΣΗ</label>
         <select id="assembly" name="assembly" form="myForm" required>
@@ -170,7 +170,8 @@
       <label for="partner" data-icon="♙">Αριθμός συνοδών στο δείπνο</label><input id="partner" type="number" name="partner" min="0" value="0" required>
       <label for="mobile" data-icon="☎">Κινητό τηλέφωνο</label><input id="mobile" type="tel" name="mobile" inputmode="tel" placeholder="6951087654" required>
       <label for="email" data-icon="✉">Email δηλωμένο στη Στοά σας</label><input id="email" type="email" name="email" placeholder="name@example.com" required>
-      <button type="submit" id="submitBtn">ΕΓΓΡΑΦΗ</button><div id="message" class="message" role="status"></div>
+      <button type="submit" id="submitBtn" disabled>ΕΓΓΡΑΦΗ</button><div id="message" class="message" role="status"></div>
+      <noscript>Η φόρμα χρειάζεται ενεργοποιημένη JavaScript.</noscript>
       <p class="build-version">BUILD NGLG-7S-R8</p>
     </form>
   </main>
@@ -228,8 +229,10 @@
         "ΠΡΩΗΝ ΒΟΗΘΟΣ ΜΕΓΑΣ ΔΙΔΑΣΚΑΛΟΣ", "ΠΡΩΗΝ ΜΕΓ. ΑΞ .", "ΠΡΩΗΝ ΣΕΒΑΣΜΙΟΣ", "ΑΛΛΟ"
       ]
     };
+    const apiOrigin = location.hostname === 'webappngdsib.github.io'
+      ? 'https://nglg-gala-registrations.dskiad.workers.dev' : '';
     async function submitRegistration(data) {
-      const response = await fetch('/api/registrations', {
+      const response = await fetch(apiOrigin + '/api/registrations', {
         method:'POST', cache:'no-store', headers:{'Content-Type':'application/json'},
         body:JSON.stringify(data), signal:AbortSignal.timeout(25000)
       });
@@ -248,13 +251,32 @@
       }
     };
     const byId=id=>document.getElementById(id);
-    fetch('/catalog.json').then(response=>{
-      if (!response.ok) throw new Error();
-      return response.json();
-    }).then(data=>{
-      globalLodges=data.lodges;
-      filterLodges();
-    }).catch(()=>showMessage('Η λίστα στοών δεν φορτώθηκε. Ανανεώστε τη σελίδα.','error'));
+    async function initializeForm() {
+      try {
+        const response = await fetch('./public/catalog.json');
+        if (!response.ok) throw new Error();
+        globalLodges = (await response.json()).lodges;
+        filterLodges();
+      } catch {
+        showMessage('Η λίστα στοών δεν φορτώθηκε. Ανανεώστε τη σελίδα.','error');
+        return;
+      }
+      if (apiOrigin) {
+        try {
+          const response = await fetch(apiOrigin + '/health', { cache:'no-store', signal:AbortSignal.timeout(8000) });
+          if (!response.ok) throw new Error();
+          const status = await response.json();
+          if (status.registrationsOpen !== true) {
+            showMessage('Οι εγγραφές δεν έχουν ανοίξει ακόμη.','error');
+            return;
+          }
+        } catch {
+          showMessage('Η υπηρεσία εγγραφών δεν είναι διαθέσιμη αυτή τη στιγμή. Δοκιμάστε ξανά αργότερα.','error');
+          return;
+        }
+      }
+      byId('submitBtn').disabled = false;
+    }
     function checkSalutationStyle() { byId('salutation').classList.toggle('gold-salutation',byId('salutation').value==='Σεβασμιότατε'); }
     function updateAssembly() {
       const select=byId('assembly');
@@ -359,6 +381,7 @@
     }
     function submitForm(event) {
       event.preventDefault();
+      if (byId('submitBtn').disabled) return;
       if (!byId('myForm').checkValidity()) { byId('myForm').reportValidity(); return; }
       openEmailCheck();
     }
@@ -382,7 +405,7 @@
       element.addEventListener('blur',()=>markCompleted(element));
     });
     byId('confirm-email').addEventListener('input',updateEmailHint);
-    byId('myForm').addEventListener('submit',submitForm); updateAssembly(); checkSalutationStyle();
+    byId('myForm').addEventListener('submit',submitForm); updateAssembly(); checkSalutationStyle(); initializeForm();
   </script>
 </body>
 </html>

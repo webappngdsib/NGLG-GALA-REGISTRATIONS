@@ -137,7 +137,7 @@ if (process.argv[2] === 'import') {
 }
 
 const staticFiles = new Map([
-  ['/', ['index.html','text/html; charset=utf-8']],
+  ['/', ['./index.html','text/html; charset=utf-8']],
   ['/catalog.json',['catalog.json','application/json; charset=utf-8']],
   ...['background.jpg','emblem.jpg','grand-master.jpg','compass.png','montserrat.woff2','playfair.woff2'].map(name=>[
     '/assets/'+name,['assets/'+name,name.endsWith('.woff2')?'font/woff2':name.endsWith('.png')?'image/png':'image/jpeg']
@@ -149,10 +149,10 @@ createServer(async (req,res) => {
   res.setHeader('referrer-policy','no-referrer');
   const url = new URL(req.url,'http://localhost');
   if (req.method === 'GET' && url.pathname === '/health') return json(res,200,{ok:true});
-  const file = staticFiles.get(url.pathname);
+  const file = staticFiles.get(url.pathname.replace(/^\/public(?=\/)/,''));
   if (req.method === 'GET' && file) {
     return res.writeHead(200,{'content-type':file[1],'cache-control':url.pathname.startsWith('/assets/')?'public, max-age=3600':'no-cache'})
-      .end(readFileSync(new URL('./public/'+file[0],import.meta.url)));
+      .end(readFileSync(new URL(url.pathname==='/' ? file[0] : './public/'+file[0],import.meta.url)));
   }
   if (req.method !== 'POST' || url.pathname !== '/api/registrations') return json(res,404,{error:'Η σελίδα δεν βρέθηκε.'});
   if (!/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) return json(res,415,{error:'Μη έγκυρη υποβολή.'});
