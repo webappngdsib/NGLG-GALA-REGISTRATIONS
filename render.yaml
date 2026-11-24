@@ -1,0 +1,33 @@
+services:
+  - name: nglg-dinner-registration
+    type: web
+    runtime: node
+    plan: starter
+    buildCommand: node --check server.mjs
+    startCommand: node server.mjs
+    healthCheckPath: /health
+    disk:
+      name: registrations
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: DB_PATH
+        value: /var/data/dinner.sqlite
+      - key: ENABLE_MAIL_WORKER
+        value: "true"
+      - key: MAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DAILY_TO
+        sync: false
+      - key: DAILY_BCC
+        sync: false
+      - key: DEC_ORGANIZER_TO
+        sync: false
+      - key: MAY_ORGANIZER_TO
+        sync: false
+      - key: DAILY_START_DATE
+        sync: false
