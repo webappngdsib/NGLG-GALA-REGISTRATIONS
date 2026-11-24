@@ -214,6 +214,20 @@ function clean_(value) {
 }
 
 
+export function normalizeRegistrationLodge(data, lodges) {
+  const province = data.province.toLocaleLowerCase('el');
+  const match = lodges.find(lodge => {
+    if (lodge.province.toLocaleLowerCase('el') !== province &&
+        lodge.registrationProvince?.toLocaleLowerCase('el') !== province) return false;
+    const label = lodge.lodge === 'ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ'
+      ? 'ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ έτος Ιδρ. 1818'
+      : lodge.lodge + (lodge.number ? ' υπ’ αριθμ. ' + lodge.number : '');
+    return label === data.lodge;
+  });
+  if (match?.registrationProvince) data.province = match.registrationProvince;
+  return Boolean(match);
+}
+
 function escapeHtml_(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -235,6 +249,7 @@ function normalizedDecemberLodgeName_(value) {
 }
 
 function classifyDecemberProvince_(lodge, enteredProvince) {
+  if (enteredProvince === 'ΣΤΟΑ ΚΕΝΤΡΟΥ') return enteredProvince;
   const master = getDecemberMasterLodge_(lodge);
   if (master) return canonicalDecemberProvince_(master[2]);
   const text = normalizeDecemberText_(lodge);
@@ -264,8 +279,7 @@ function classifyDecemberProvince_(lodge, enteredProvince) {
     ['ΔΥΤΙΚΗΣ ΕΛΛΑΔΟΣ', 'ΠΕΛ & Δ ΕΛΛΑΔΟΣ'],
     ['ΠΕΛ & Δ ΕΛΛΑΔΟΣ', 'ΠΕΛ & Δ ΕΛΛΑΔΟΣ'],
     ['ΚΕΝΤΡΙΚΗΣ & ΒΟΡΕΙΟΥ ΕΛΛΑΔΟΣ', 'ΚΕΝΤΡΙΚΗΣ & ΒΟΡΕΙΟΥ ΕΛΛΑΔΟΣ'],
-    ['ΚΥΠΡΟΥ', 'ΚΥΠΡΟΥ'],
-    ['ΣΤΟΑ ΚΕΝΤΡΟΥ', 'ΣΤΟΑ ΚΕΝΤΡΟΥ']
+    ['ΚΥΠΡΟΥ', 'ΚΥΠΡΟΥ']
   ];
   const match = aliases.find(pair => normalizeDecemberText_(pair[0]) === selected);
   return match ? match[1] : DEC_UNKNOWN_PROVINCE;
@@ -1037,7 +1051,7 @@ function getDecemberDailyDetails_(entries) {
     if (master) registeredKeys.add(key);
     else unknown.add(rawLodge || '(ΧΩΡΙΣ ΣΤΟΑ)');
 
-    const province = master ? canonicalDecemberProvince_(master[2]) :
+    const province = master && row[4] !== 'ΣΤΟΑ ΚΕΝΤΡΟΥ' ? canonicalDecemberProvince_(master[2]) :
       classifyDecemberProvince_(rawLodge, row[4]); // F
     if (!grouped.has(province)) grouped.set(province, new Map());
     const number = master ? String(master[0]) : '—';

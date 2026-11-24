@@ -3,7 +3,7 @@ import {StringDecoder} from 'node:string_decoder';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync, mkdirSync} from 'node:fs';
 import {dirname} from 'node:path';
-import {EVENT_DETAILS, sanitizeForm_, validateForm_, normalizeMobile_, confirmation, dinnerReport, morningReport} from './reports.mjs';
+import {EVENT_DETAILS, sanitizeForm_, validateForm_, normalizeRegistrationLodge, normalizeMobile_, confirmation, dinnerReport, morningReport} from './reports.mjs';
 
 const path = process.env.DB_PATH || 'data/dinner.sqlite';
 mkdirSync(dirname(path), {recursive:true, mode:0o700});
@@ -172,9 +172,7 @@ createServer(async (req,res) => {
     data = sanitizeForm_(raw);
     validateForm_(data);
     if (!Number.isSafeInteger(Number(raw.partner)) || Number(raw.partner)<0 ||
-        !catalog.lodges.some(lodge=>lodge.province.toLocaleLowerCase('el')===data.province.toLocaleLowerCase('el') &&
-          (lodge.lodge==='ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ' ? 'ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ έτος Ιδρ. 1818' :
-            lodge.lodge+(lodge.number?' υπ’ αριθμ. '+lodge.number:''))===data.lodge)) {
+        !normalizeRegistrationLodge(data, catalog.lodges)) {
       throw Error('Ελέγξτε τη στοά και τους συνοδούς.');
     }
   } catch (error) {

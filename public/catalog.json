@@ -45,7 +45,8 @@
     {
       "lodge": "ΙΣΙΣ",
       "number": "9",
-      "province": "ΑΘΗΝΩΝ"
+      "province": "ΑΘΗΝΩΝ",
+      "registrationProvince": "ΣΤΟΑ ΚΕΝΤΡΟΥ"
     },
     {
       "lodge": "ΗΡΑΚΛΕΙΤΟΣ",
@@ -300,7 +301,8 @@
     {
       "lodge": "ΕΛΛΗΝΩΝ ΗΡΩΩΝ",
       "number": "91",
-      "province": "ΑΘΗΝΩΝ"
+      "province": "ΑΘΗΝΩΝ",
+      "registrationProvince": "ΣΤΟΑ ΚΕΝΤΡΟΥ"
     },
     {
       "lodge": "ΙΩΑΝΝΗΣ ΚΑΠΟΔΙΣΤΡΙΑΣ",

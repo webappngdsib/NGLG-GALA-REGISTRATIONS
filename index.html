@@ -306,14 +306,30 @@
     }
     function filterLodges() {
       const select=byId('lodge'); select.innerHTML='<option value="">-- Επιλέξτε Στοά --</option>';
-      const matches=globalLodges.filter(item=>String(item.province||'').trim().toLocaleLowerCase('el')===byId('province').value.trim().toLocaleLowerCase('el'));
+      const province=byId('province').value.trim().toLocaleLowerCase('el');
+      const matches=globalLodges.filter(item=>item.province.toLocaleLowerCase('el')===province ||
+        item.registrationProvince?.toLocaleLowerCase('el')===province);
       if (!matches.length) select.add(new Option('-- Δεν βρέθηκαν Στοές για αυτή την Επαρχία --',''));
       else matches.forEach(item=>{
         const display=item.lodge==='ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ'
           ? 'ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ έτος Ιδρ. 1818'
           : item.lodge+(item.number!==''&&item.number!=null?' υπ’ αριθμ. '+item.number:'');
-        select.add(new Option(display,display));
+        const option=new Option(display,display);
+        if (item.registrationProvince) option.dataset.province=item.registrationProvince;
+        select.add(option);
       });
+    }
+    function selectLodgeProvince() {
+      const lodge=byId('lodge');
+      const province=byId('province');
+      const target=lodge.selectedOptions[0]?.dataset.province;
+      if (!target || province.value===target) return;
+      const selected=lodge.value;
+      province.value=target;
+      filterLodges();
+      lodge.value=selected;
+      markCompleted(province);
+      markCompleted(lodge);
     }
     function showMessage(text,type) { const box=byId('message'); box.textContent=text; box.className='message '+type; }
     function showConfirmation(data) {
@@ -400,6 +416,7 @@
     byId('assembly').addEventListener('change',updateAssembly);
     byId('salutation').addEventListener('change',()=>{updateSubmitButton();checkSalutationStyle();});
     byId('statusType').addEventListener('change',updateOfficeList); byId('province').addEventListener('change',filterLodges);
+    byId('lodge').addEventListener('change',selectLodgeProvince);
     document.querySelectorAll('#myForm input,#myForm select,[form="myForm"]').forEach(element=>{
       element.addEventListener('input',()=>markCompleted(element));
       element.addEventListener('change',()=>markCompleted(element));

@@ -1,5 +1,5 @@
 import catalog from './public/catalog.json' with { type: 'json' };
-import { sanitizeForm_, validateForm_ } from './reports.mjs';
+import { sanitizeForm_, validateForm_, normalizeRegistrationLodge } from './reports.mjs';
 
 function validate(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) ||
@@ -8,14 +8,8 @@ function validate(raw) {
   }
   const data = sanitizeForm_(raw);
   validateForm_(data);
-  const lodgeMatches = catalog.lodges.some(lodge => {
-    if (lodge.province.toLocaleLowerCase('el') !== data.province.toLocaleLowerCase('el')) return false;
-    const name = lodge.lodge === 'ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ'
-      ? 'ΦΟΙΝΙΞ ΚΕΡΚΥΡΑΣ έτος Ιδρ. 1818'
-      : lodge.lodge + (lodge.number ? ' υπ’ αριθμ. ' + lodge.number : '');
-    return name === data.lodge;
-  });
-  if (raw.partner === undefined || !Number.isSafeInteger(Number(raw.partner)) || Number(raw.partner) < 0 || !lodgeMatches) {
+  if (raw.partner === undefined || !Number.isSafeInteger(Number(raw.partner)) || Number(raw.partner) < 0 ||
+      !normalizeRegistrationLodge(data, catalog.lodges)) {
     throw new Error('Ελέγξτε τη στοά και τους συνοδούς.');
   }
   return data;
