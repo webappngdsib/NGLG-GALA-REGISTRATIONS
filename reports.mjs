@@ -22,13 +22,13 @@ const PROVINCES = [
   'ΙΟΝΙΩΝ ΝΗΣΩΝ',
   'ΔΥΤΙΚΗΣ ΕΛΛΑΔΟΣ',
   'ΚΕΝΤΡΙΚΗΣ & ΒΟΡΕΙΟΥ ΕΛΛΑΔΟΣ',
-  'ΚΥΠΡΟΥ'
+  'ΚΥΠΡΟΥ',
+  'ΣΤΟΑ ΚΕΝΤΡΟΥ'
 ];
 
 // Province classification from the supplied 87-lodge reference list.
 // Use Lodge number first: some names are shared by different Lodges.
-// The web form and its existing PROVINCES values are left unchanged.
-const DEC_PROVINCE_LABELS = Object.freeze(["ΑΘΗΝΩΝ", "ΠΕΙΡΑΙΩΣ & ΑΡΧΙΠΕΛΑΓΟΥΣ ΑΙΓΑΙΟΥ", "ΙΟΝΙΩΝ ΝΗΣΩΝ", "ΠΕΛ & Δ ΕΛΛΑΔΟΣ", "ΚΕΝΤΡΙΚΗΣ & ΒΟΡΕΙΟΥ ΕΛΛΑΔΟΣ", "ΚΥΠΡΟΥ"]);
+const DEC_PROVINCE_LABELS = Object.freeze(["ΑΘΗΝΩΝ", "ΠΕΙΡΑΙΩΣ & ΑΡΧΙΠΕΛΑΓΟΥΣ ΑΙΓΑΙΟΥ", "ΙΟΝΙΩΝ ΝΗΣΩΝ", "ΠΕΛ & Δ ΕΛΛΑΔΟΣ", "ΚΕΝΤΡΙΚΗΣ & ΒΟΡΕΙΟΥ ΕΛΛΑΔΟΣ", "ΚΥΠΡΟΥ", "ΣΤΟΑ ΚΕΝΤΡΟΥ"]);
 const DEC_LODGE_REFERENCE = Object.freeze([
   [1, "ΠΑΛΑΙΩΝ ΠΑΤΡΩΝ ΓΕΡΜΑΝΟΣ", "ΠΕΛ & Δ ΕΛΛΑΔΟΣ"],
   [2, "ΑΚΡΟΠΟΛΙΣ", "ΑΘΗΝΩΝ"],
@@ -264,7 +264,8 @@ function classifyDecemberProvince_(lodge, enteredProvince) {
     ['ΔΥΤΙΚΗΣ ΕΛΛΑΔΟΣ', 'ΠΕΛ & Δ ΕΛΛΑΔΟΣ'],
     ['ΠΕΛ & Δ ΕΛΛΑΔΟΣ', 'ΠΕΛ & Δ ΕΛΛΑΔΟΣ'],
     ['ΚΕΝΤΡΙΚΗΣ & ΒΟΡΕΙΟΥ ΕΛΛΑΔΟΣ', 'ΚΕΝΤΡΙΚΗΣ & ΒΟΡΕΙΟΥ ΕΛΛΑΔΟΣ'],
-    ['ΚΥΠΡΟΥ', 'ΚΥΠΡΟΥ']
+    ['ΚΥΠΡΟΥ', 'ΚΥΠΡΟΥ'],
+    ['ΣΤΟΑ ΚΕΝΤΡΟΥ', 'ΣΤΟΑ ΚΕΝΤΡΟΥ']
   ];
   const match = aliases.find(pair => normalizeDecemberText_(pair[0]) === selected);
   return match ? match[1] : DEC_UNKNOWN_PROVINCE;
