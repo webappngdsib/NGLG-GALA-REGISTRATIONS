@@ -1,5 +1,6 @@
 import catalog from './public/catalog.json' with { type: 'json' };
-import { sanitizeForm_, validateForm_, normalizeRegistrationLodge } from './reports.mjs';
+import { sanitizeForm_, validateForm_, normalizeRegistrationLodge, confirmation, morningReport } from './reports.mjs';
+import { gmailConfigured, sendGmail } from './gmail.mjs';
 
 function validate(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) ||
@@ -15,7 +16,43 @@ function validate(raw) {
   return data;
 }
 
+const athensDate = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Athens' });
+const mailRecipients = value => (value || '').split(',').map(item => item.trim()).filter(Boolean);
+
+async function sendDailyReport(event, env) {
+  if (env.REGISTRATIONS_OPEN !== 'true' || !gmailConfigured(env)) return;
+  const day = athensDate.format(new Date(event.scheduledTime));
+  if (day < '2026-11-20' || day > '2026-12-18' || (env.DAILY_START_DATE && day < env.DAILY_START_DATE)) return;
+  const to = mailRecipients(env.DAILY_TO);
+  if (!to.length) return;
+
+  const claimed = await env.DB.prepare(
+    "INSERT INTO daily_mail(day, state) VALUES (?, 'pending') ON CONFLICT(day) DO NOTHING RETURNING day"
+  ).bind(day).first();
+  if (!claimed) return;
+
+  let sent = false;
+  try {
+    const { results } = await env.DB.prepare(
+      "SELECT payload FROM registrations WHERE assembly = 'dec2026' ORDER BY id"
+    ).all();
+    const entries = results.map(({ payload }) => {
+      const data = JSON.parse(payload);
+      return [data.name, data.surname, data.salutation, data.office, data.province, data.lodge, data.partner];
+    });
+    const report = morningReport(entries, day.split('-').reverse().join('/'));
+    sent = await sendGmail(env, { ...report, to, bcc: mailRecipients(env.DAILY_BCC) });
+  } catch {
+    console.error('Daily Gmail report failed');
+  }
+  await env.DB.prepare('UPDATE daily_mail SET state=? WHERE day=?').bind(sent ? 'sent' : 'failed', day).run();
+}
+
 export default {
+  async scheduled(event, env) {
+    await sendDailyReport(event, env);
+  },
+
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
     const allowedOrigin = request.headers.get('Origin') === env.FORM_ORIGIN;
@@ -71,10 +108,16 @@ export default {
         RETURNING id
       `).bind(data.assembly, data.mobile, new Date().toISOString(), JSON.stringify(data)).first();
       if (!row) return json(409, { error: 'DUPLICATE_MOBILE: Υπάρχει ήδη εγγραφή με αυτό το κινητό.' });
-      return json(201, { emailSent: false });
     } catch {
       console.error('D1 registration write failed');
       return json(503, { error: 'Η καταχώριση απέτυχε. Δοκιμάστε ξανά.' });
     }
+    let emailSent = false;
+    try {
+      emailSent = await sendGmail(env, confirmation(data));
+    } catch {
+      console.error('Confirmation Gmail delivery failed');
+    }
+    return json(201, { emailSent });
   }
 };
