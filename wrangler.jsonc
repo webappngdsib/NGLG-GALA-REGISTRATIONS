@@ -4,6 +4,7 @@
   "compatibility_date": "2026-11-24",
   "workers_dev": true,
   "preview_urls": false,
+  "keep_vars": true,
   "triggers": { "crons": ["30 7 * * *"] },
   "vars": {
     "FORM_ORIGIN": "https://webappngdsib.github.io",
