@@ -1,5 +1,6 @@
 import catalog from './public/catalog.json' with { type: 'json' };
 import { sanitizeForm_, validateForm_, normalizeRegistrationLodge, confirmation, morningReport } from './reports.mjs';
+import { exportRegistrations } from './export-workbook.mjs';
 import { gmailConfigured, sendGmail } from './gmail.mjs';
 
 function validate(raw) {
@@ -63,6 +64,7 @@ export default {
 
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
+    if (pathname === '/export') return exportRegistrations(request, env);
     const allowedOrigin = request.headers.get('Origin') === env.FORM_ORIGIN;
     const headers = {
       'Cache-Control': 'no-store',

@@ -6,3 +6,5 @@ data/
 migration*.json
 
 *.csv
+
+node_modules/
