@@ -8,7 +8,7 @@
   "triggers": { "crons": ["30 7 * * *"] },
   "vars": {
     "FORM_ORIGIN": "https://webappngdsib.github.io",
-    "REGISTRATIONS_OPEN": "false"
+    "REGISTRATIONS_OPEN": "true"
   },
   "d1_databases": [
     {
