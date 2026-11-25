@@ -1,5 +1,5 @@
 import catalog from './public/catalog.json' with { type: 'json' };
-import { sanitizeForm_, validateForm_, normalizeRegistrationLodge, normalizeMobile_, confirmation, morningReport } from './reports.mjs';
+import { sanitizeForm_, validateForm_, normalizeRegistrationLodge, confirmation, morningReport } from './reports.mjs';
 import { gmailConfigured, sendGmail } from './gmail.mjs';
 
 function validate(raw) {
@@ -56,37 +56,6 @@ async function testAccess(request) {
   return crypto.subtle.timingSafeEqual(digest, expected);
 }
 
-async function importLegacyRegistrations(request, env, json) {
-  const key = request.headers.get('X-NGLG-Import-Key') || '';
-  if (request.method !== 'POST' || !/^[a-f0-9]{64}$/.test(key) ||
-      Date.now() >= Date.parse('2026-11-26T23:59:59Z')) return json(404, { ok: false });
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
-  const expected = Uint8Array.from('641f4e5ac6e7b896e713c76775ad912d5ab82df5e1e1ddf3b7bbae30d046eef8'.match(/../g), byte => parseInt(byte, 16));
-  if (!crypto.subtle.timingSafeEqual(digest, expected)) return json(404, { ok: false });
-
-  try {
-    const body = await request.text();
-    if (body.length > 40000) return json(413, { ok: false });
-    const rows = JSON.parse(body);
-    if (!Array.isArray(rows) || !rows.length || rows.length > 30) return json(400, { ok: false });
-    const statement = env.DB.prepare(`
-      INSERT INTO registrations (assembly, mobile, created, payload) VALUES (?, ?, ?, ?)
-      ON CONFLICT (assembly, mobile) DO NOTHING
-    `);
-    const statements = rows.map(row => {
-      if (!row || !['dec2026', 'may2027'].includes(row.assembly) ||
-          !row.name || !row.surname || !row.created || !normalizeMobile_(row.mobile)) throw Error('Invalid legacy row');
-      const mobile = normalizeMobile_(row.mobile);
-      return statement.bind(row.assembly, mobile, row.created, JSON.stringify({ ...row, mobile }));
-    });
-    const results = await env.DB.batch(statements);
-    const inserted = results.reduce((total, result) => total + result.meta.changes, 0);
-    return json(200, { ok: true, inserted, alreadyPresent: rows.length - inserted });
-  } catch {
-    return json(500, { ok: false });
-  }
-}
-
 export default {
   async scheduled(event, env) {
     await sendDailyReport(event, env);
@@ -102,8 +71,6 @@ export default {
     };
     if (allowedOrigin) headers['Access-Control-Allow-Origin'] = env.FORM_ORIGIN;
     const json = (status, value) => Response.json(value, { status, headers });
-
-    if (pathname === '/internal/legacy-import') return importLegacyRegistrations(request, env, json);
 
     if (request.method === 'OPTIONS' && allowedOrigin && ['/health', '/api/registrations'].includes(pathname)) {
       return new Response(null, { status: 204, headers: {
