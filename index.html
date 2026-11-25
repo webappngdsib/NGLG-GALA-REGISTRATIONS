@@ -232,9 +232,11 @@
     };
     const apiOrigin = location.hostname === 'webappngdsib.github.io'
       ? 'https://nglg-gala-registrations.dskiad.workers.dev' : '';
+    const testKey = apiOrigin ? new URLSearchParams(location.hash.slice(1)).get('test') : null;
+    const testHeaders = testKey ? { 'X-NGLG-Test-Key': testKey } : {};
     async function submitRegistration(data) {
       const response = await fetch(apiOrigin + '/api/registrations', {
-        method:'POST', cache:'no-store', headers:{'Content-Type':'application/json'},
+        method:'POST', cache:'no-store', headers:{'Content-Type':'application/json', ...testHeaders},
         body:JSON.stringify(data), signal:AbortSignal.timeout(25000)
       });
       const payload = await response.json();
@@ -264,10 +266,22 @@
       }
       if (apiOrigin) {
         try {
-          const response = await fetch(apiOrigin + '/health', { cache:'no-store', signal:AbortSignal.timeout(8000) });
+          const response = await fetch(apiOrigin + '/health', { cache:'no-store', headers:testHeaders, signal:AbortSignal.timeout(8000) });
           if (!response.ok) throw new Error();
           const status = await response.json();
-          if (status.registrationsOpen !== true) {
+          if (testKey) {
+            if (!status.testReady) {
+              showMessage('Ο σύνδεσμος δοκιμής δεν είναι διαθέσιμος.','error');
+              return;
+            }
+            for (const [id,value] of Object.entries({
+              fn:'ΔΟΚΙΜΗ', ln:'ΕΓΓΡΑΦΗΣ', mobile:'6900000000', email:'info@nglgreece.gr'
+            })) {
+              byId(id).value=value;
+              byId(id).readOnly=true;
+            }
+            showMessage('Δοκιμαστική εγγραφή. Η επιβεβαίωση θα σταλεί στο info@nglgreece.gr.','success');
+          } else if (status.registrationsOpen !== true) {
             showMessage('Οι εγγραφές δεν έχουν ανοίξει ακόμη.','error');
             return;
           }
@@ -383,6 +397,7 @@
     function openEmailCheck() {
       const input=byId('confirm-email');
       input.value=byId('email').value.trim();
+      input.readOnly=Boolean(testKey);
       updateEmailHint();
       byId('email-check').classList.add('open');
       setTimeout(()=>{ input.focus(); input.select(); },100);
@@ -405,7 +420,7 @@
     function sendForm() {
       const form=byId('myForm'); const button=byId('submitBtn'); button.disabled=true;
       const data=Object.fromEntries(new FormData(form).entries());
-      submitRegistration(data).then(result=>{ showConfirmation(data); form.reset(); button.disabled=false; updateAssembly(); updateSubmitButton(); updateOfficeList(); filterLodges(); refreshCompletedFields();
+      submitRegistration(data).then(result=>{ showConfirmation(data); if (!testKey) form.reset(); button.disabled=Boolean(testKey); updateAssembly(); updateSubmitButton(); updateOfficeList(); filterLodges(); refreshCompletedFields();
         const emailSent=result.emailSent;
         showMessage(emailSent
           ? 'Η εγγραφή ολοκληρώθηκε επιτυχώς και στάλθηκε email επιβεβαίωσης.'

@@ -48,6 +48,14 @@ async function sendDailyReport(event, env) {
   await env.DB.prepare('UPDATE daily_mail SET state=? WHERE day=?').bind(sent ? 'sent' : 'failed', day).run();
 }
 
+async function testAccess(request) {
+  const key = request.headers.get('X-NGLG-Test-Key');
+  if (!key || !/^[a-f0-9]{48}$/.test(key) || Date.now() >= Date.parse('2026-11-27T23:59:59Z')) return false;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
+  const expected = Uint8Array.from('820ec1929db89e1e9355ac0e6172035c404fd96de68c23caa93cc68657e8cb43'.match(/../g), byte => parseInt(byte, 16));
+  return crypto.subtle.timingSafeEqual(digest, expected);
+}
+
 export default {
   async scheduled(event, env) {
     await sendDailyReport(event, env);
@@ -59,28 +67,32 @@ export default {
     const headers = {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
-      'Vary': 'Origin'
+      'Vary': 'Origin, X-NGLG-Test-Key'
     };
     if (allowedOrigin) headers['Access-Control-Allow-Origin'] = env.FORM_ORIGIN;
     const json = (status, value) => Response.json(value, { status, headers });
 
+    if (request.method === 'OPTIONS' && allowedOrigin && ['/health', '/api/registrations'].includes(pathname)) {
+      return new Response(null, { status: 204, headers: {
+        ...headers,
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, X-NGLG-Test-Key'
+      } });
+    }
+    const test = allowedOrigin && await testAccess(request);
     if (request.method === 'GET' && pathname === '/health') {
       try {
         await env.DB.prepare('SELECT 1 AS ready FROM registrations LIMIT 1').first();
-        return json(200, { ok: true, registrationsOpen: env.REGISTRATIONS_OPEN === 'true' });
+        return json(200, { ok: true, registrationsOpen: env.REGISTRATIONS_OPEN === 'true', ...(test ? { testReady: gmailConfigured(env) } : {}) });
       } catch {
         return json(503, { ok: false });
       }
     }
     if (pathname !== '/api/registrations') return json(404, { error: 'Η σελίδα δεν βρέθηκε.' });
     if (!allowedOrigin) return json(403, { error: 'Η προέλευση της φόρμας δεν επιτρέπεται.' });
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: {
-        ...headers, 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type'
-      } });
-    }
     if (request.method !== 'POST') return json(405, { error: 'Μη επιτρεπτή μέθοδος.' });
-    if (env.REGISTRATIONS_OPEN !== 'true') return json(503, { error: 'Οι δηλώσεις δεν έχουν ανοίξει ακόμη.' });
+    if (request.headers.has('X-NGLG-Test-Key') && !test) return json(403, { error: 'Ο σύνδεσμος δοκιμής δεν είναι έγκυρος ή έχει λήξει.' });
+    if (!test && env.REGISTRATIONS_OPEN !== 'true') return json(503, { error: 'Οι δηλώσεις δεν έχουν ανοίξει ακόμη.' });
     if (!/^application\/json(?:;|$)/i.test(request.headers.get('Content-Type') || '')) {
       return json(415, { error: 'Μη έγκυρη υποβολή.' });
     }
@@ -96,6 +108,10 @@ export default {
         body += decoder.decode(chunk, { stream: true });
       }
       data = validate(JSON.parse(body + decoder.decode()));
+      if (test && (data.name !== 'ΔΟΚΙΜΗ' || data.surname !== 'ΕΓΓΡΑΦΗΣ' ||
+          data.mobile !== '6900000000' || data.email !== 'info@nglgreece.gr')) {
+        throw new Error('Χρησιμοποίησε τα προσυμπληρωμένα δοκιμαστικά στοιχεία.');
+      }
     } catch (error) {
       return json(400, { error: error instanceof SyntaxError ? 'Μη έγκυρη δήλωση.' : error.message });
     }
@@ -106,7 +122,7 @@ export default {
         VALUES (?, ?, ?, ?)
         ON CONFLICT (assembly, mobile) DO NOTHING
         RETURNING id
-      `).bind(data.assembly, data.mobile, new Date().toISOString(), JSON.stringify(data)).first();
+      `).bind(test ? 'test-' + data.assembly : data.assembly, data.mobile, new Date().toISOString(), JSON.stringify(data)).first();
       if (!row) return json(409, { error: 'DUPLICATE_MOBILE: Υπάρχει ήδη εγγραφή με αυτό το κινητό.' });
     } catch {
       console.error('D1 registration write failed');
@@ -114,7 +130,9 @@ export default {
     }
     let emailSent = false;
     try {
-      emailSent = await sendGmail(env, confirmation(data));
+      const mail = confirmation(data);
+      if (test) mail.subject = '[ΔΟΚΙΜΗ] ' + mail.subject;
+      emailSent = await sendGmail(env, mail);
     } catch {
       console.error('Confirmation Gmail delivery failed');
     }
