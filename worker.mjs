@@ -64,30 +64,6 @@ export default {
     if (allowedOrigin) headers['Access-Control-Allow-Origin'] = env.FORM_ORIGIN;
     const json = (status, value) => Response.json(value, { status, headers });
 
-    if (request.method === 'POST' && pathname === '/gmail-delivery-check') {
-      if (!gmailConfigured(env)) return json(503, { result: 'gmail-secrets-unavailable' });
-      const key = 'gmail-delivery-check-2026-11-25';
-      const claim = await env.DB.prepare(
-        "INSERT INTO daily_mail(day,state) VALUES (?, 'pending') ON CONFLICT(day) DO NOTHING RETURNING day"
-      ).bind(key).first();
-      if (!claim) {
-        const record = await env.DB.prepare('SELECT state FROM daily_mail WHERE day=?').bind(key).first();
-        return json(200, { result: record.state });
-      }
-      let sent = false;
-      try {
-        sent = await sendGmail(env, {
-          to: 'info@nglgreece.gr',
-          subject: 'Δοκιμή αποστολής — Δηλώσεις δείπνου ΕΜΣΤΕ',
-          html: '<p>Αυτό είναι το δοκιμαστικό μήνυμα από τον Worker της νέας φόρμας. Δεν δημιουργήθηκε δήλωση συμμετοχής.</p>'
-        });
-      } catch {
-        console.error('Gmail delivery check failed');
-      }
-      await env.DB.prepare('UPDATE daily_mail SET state=? WHERE day=?').bind(sent ? 'sent' : 'failed', key).run();
-      return json(sent ? 200 : 502, { result: sent ? 'sent' : 'failed' });
-    }
-
     if (request.method === 'GET' && pathname === '/health') {
       try {
         await env.DB.prepare('SELECT 1 AS ready FROM registrations LIMIT 1').first();
