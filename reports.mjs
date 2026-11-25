@@ -181,6 +181,9 @@ export function confirmation(data) {
 
   const html = '<div style="max-width:680px;margin:auto;font-family:Arial,sans-serif;color:#061a35">' +
     '<div style="padding:24px;background:#123f78;color:white;text-align:center;border-bottom:4px solid #d0aa4f">' +
+    '<img src="https://webappngdsib.github.io/NGLG-GALA-REGISTRATIONS/public/assets/emblem.jpg" ' +
+    'alt="Θυρεός της Εθνικής Μεγάλης Στοάς της Ελλάδος" width="120" height="127" ' +
+    'style="display:block;width:120px;height:auto;margin:0 auto 14px;border:0">' +
     '<h1 style="margin:0;font-size:23px">ΕΘΝΙΚΗ ΜΕΓΑΛΗ ΣΤΟΑ ΤΗΣ ΕΛΛΑΔΟΣ</h1></div>' +
     '<div style="padding:28px;border:1px solid #d0aa4f">' +
     '<h2>Ευχαριστούμε για τη δήλωση συμμετοχής</h2>' +
